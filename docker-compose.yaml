@@ -1,0 +1,9 @@
+version: "3.3"
+
+services:
+  webapp:
+    build: .
+    image: simpleweb:${TAG}
+    volumes:
+       - ./tests:/simpleweb/tests/
+    entrypoint: pytest

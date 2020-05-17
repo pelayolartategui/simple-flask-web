@@ -4,6 +4,5 @@ services:
   webapp:
     build: .
     image: simpleweb:${TAG}
-    volumes:
-       - ./tests:/simpleweb/tests/
-    entrypoint: pytest
+    ports:
+      - "5000:5000"

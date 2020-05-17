@@ -39,9 +39,9 @@ build:
 
 ## Run all tests inside container
 test:
-	docker-compose up
+	docker-compose -f docker-compose_test.yaml up
 
 ## Run app in port 5000
 run:
-	docker run -p 5000:5000 simpleweb:0.0.1	
+	docker-compose up	
 	

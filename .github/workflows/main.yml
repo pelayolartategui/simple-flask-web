@@ -50,7 +50,7 @@ jobs:
       uses: fifsky/ssh-action@master
       with:
         command: |
-          docker pull ${{ github.repository  }}:${{ env.CURR_TAG }}
+          docker service update --image ${{ github.repository  }}:${{ env.CURR_TAG }} webapp
         host: ${{ secrets.HOST }}
         user: ec2-user
         key: ${{ secrets.PRIVATE_KEY}}

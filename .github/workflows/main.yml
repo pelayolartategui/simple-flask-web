@@ -10,6 +10,9 @@ on:
   pull_request:
     branches: [ master ]
 
+env:
+  CURR_TAG: sha-${GITHUB_SHA:7}
+
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job for building testing and pushing image
@@ -25,14 +28,13 @@ jobs:
     - uses: docker/build-push-action@v1
       with:
         tag_with_ref: true
-        tag_with_sha: true
-        tags: latest
+        tags: latest,${{ env.CURR_TAG }}
         push: false
     
     - name: Test the image
       run: docker-compose -f docker-compose_test.yaml up --exit-code-from webapp
       env:
-        IMAGE: ${{ github.repository  }}:latest
+        IMAGE: ${{ github.repository  }}:${{ env.CURR_TAG }}
     
     - uses: docker/build-push-action@v1
       if: ${{ github.ref == 'refs/heads/master' }}
@@ -43,4 +45,13 @@ jobs:
         tag_with_ref: true
         tag_with_sha: true
         tags: latest
+    
+    - name: Deploy new image on docker-swarm
+      uses: fifsky/ssh-action@master
+      with:
+        command: |
+          docker pull ${{ github.repository  }}:${{ env.CURR_TAG }}
+        host: ${{ secrets.HOST }}
+        user: ec2-user
+        key: ${{ secrets.PRIVATE_KEY}}
 

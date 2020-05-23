@@ -10,9 +10,6 @@ on:
   pull_request:
     branches: [ master ]
 
-env:
-  CURR_TAG: sha-${GITHUB_SHA:7}
-
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job for building testing and pushing image
@@ -24,7 +21,10 @@ jobs:
     steps:
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
     - uses: actions/checkout@v2
-
+    
+    - name: Set env
+      run: echo ::set-env name=CURR_TAG::sha-$(echo $GITHUB_SHA | cut -c 1-7)
+    
     - uses: docker/build-push-action@v1
       with:
         tag_with_ref: true

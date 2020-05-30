@@ -47,7 +47,7 @@ jobs:
         tags: latest
     
     - name: Deploy new image on docker-swarm
-      if: ${{ github.ref == 'refs/heads/master' }} && $DEPLOY_MODE == 'swarm'
+      if: ${{ github.ref == 'refs/heads/master' && "$DEPLOY_MODE" == "swarm" }}
       uses: fifsky/ssh-action@master
       with:
         command: |

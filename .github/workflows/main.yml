@@ -27,7 +27,7 @@ jobs:
       run: echo ::set-env name=DEPLOY_MODE::${{ secrets.DEPLOY_MODE }}
     
     - name: Set env IMAGE_NAME
-      run: echo ::set-env name=IMAGE_NAME::${{ github.repository  }}
+      run: echo ::set-env name=IMAGE_NAME::$(echo $GITHUB_REPOSITORY | tr '[:upper:]' '[:lower:]')
     
     - uses: docker/build-push-action@v1
       with:
@@ -92,7 +92,7 @@ jobs:
       with:
         task-definition: task-definition.json
         container-name: simple_flask_web
-        image: ${{ github.repository  }}:${{ env.CURR_TAG }}
+        image: ${{ secrets.DOCKER_REPO  }}:${{ env.CURR_TAG }}
 
     - name: Deploy Amazon ECS task definition
       if: ${{ github.ref == 'refs/heads/master' && env.DEPLOY_MODE == 'fargate' }}

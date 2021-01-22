@@ -6,7 +6,7 @@ WORKDIR /simpleweb
 
 RUN set -e;\
 	apk add --no-cache --virtual .build-deps \
-		gcc~=9.2.0 \
+		gcc~=9 \
 		libc-dev~=0.7.2 \
 		linux-headers~=4.19.36 \
 	; \

@@ -21,13 +21,13 @@ jobs:
     - uses: actions/checkout@v2
     
     - name: Set env TAG
-      run: echo ::set-env name=CURR_TAG::sha-$(echo $GITHUB_SHA | cut -c 1-7)
+      run: echo "CURR_TAG=sha-$(echo $GITHUB_SHA | cut -c 1-7)" >> $GITHUB_ENV
 
     - name: Set env DEPLOY_MODE
-      run: echo ::set-env name=DEPLOY_MODE::${{ secrets.DEPLOY_MODE }}
+      run: echo "DEPLOY_MODE=${{ secrets.DEPLOY_MODE }}" >> $GITHUB_ENV
     
     - name: Set env IMAGE_NAME
-      run: echo ::set-env name=IMAGE_NAME::$(echo $GITHUB_REPOSITORY | tr '[:upper:]' '[:lower:]')
+      run: echo "IMAGE_NAME=$(echo $GITHUB_REPOSITORY | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
     
     - uses: docker/build-push-action@v1
       with:
@@ -67,10 +67,10 @@ jobs:
     steps:
 
     - name: Set env TAG
-      run: echo ::set-env name=CURR_TAG::sha-$(echo $GITHUB_SHA | cut -c 1-7)
+      run: echo "CURR_TAG=sha-$(echo $GITHUB_SHA | cut -c 1-7)" >> $GITHUB_ENV
 
     - name: Set env DEPLOY_MODE
-      run: echo ::set-env name=DEPLOY_MODE::${{ secrets.DEPLOY_MODE }}
+      run: echo "DEPLOY_MODE=${{ secrets.DEPLOY_MODE }}" >> $GITHUB_ENV
     
     - name: Configure AWS credentials from Test account
       if: ${{ github.ref == 'refs/heads/master' && env.DEPLOY_MODE == 'fargate' }}
@@ -102,4 +102,3 @@ jobs:
         service: ${{ env.ONWER_ID }}-sfw-service
         cluster: ${{ env.ONWER_ID }}-ecs-cluster
         wait-for-service-stability: true
-

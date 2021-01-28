@@ -12,6 +12,7 @@ on:
 
 env:
   ONWER_ID: superman
+  SUFFIX: iiGIMPUB
 
 jobs:
   build-test-push:
@@ -83,7 +84,7 @@ jobs:
     - name: Download task definition
       if: ${{ github.ref == 'refs/heads/master' && env.DEPLOY_MODE == 'fargate' }}
       run: |
-        aws ecs describe-task-definition --task-definition ${{ env.ONWER_ID }}-sfw-task --query taskDefinition > task-definition.json
+        aws ecs describe-task-definition --task-definition ${{ env.ONWER_ID }}-sfw-task-${{ env.SUFFIX }} --query taskDefinition > task-definition.json
       
     - name: Fill in the new image ID in the Amazon ECS task definition
       if: ${{ github.ref == 'refs/heads/master' && env.DEPLOY_MODE == 'fargate' }}
@@ -99,6 +100,6 @@ jobs:
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
       with:
         task-definition: ${{ steps.task-def.outputs.task-definition }}
-        service: ${{ env.ONWER_ID }}-sfw-service
-        cluster: ${{ env.ONWER_ID }}-ecs-cluster
+        service: ${{ env.ONWER_ID }}-sfw-service-${{ env.SUFFIX }}
+        cluster: ${{ env.ONWER_ID }}-ecs-cluster-${{ env.SUFFIX }}
         wait-for-service-stability: true

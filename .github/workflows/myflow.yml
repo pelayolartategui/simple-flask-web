@@ -1,0 +1,105 @@
+# This is a basic workflow to help you get started with Actions..test
+
+name: CI
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the master branch
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  ONWER_ID: superman
+  SUFFIX: iiGIMPUB
+
+jobs:
+  build-test-push:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Set env TAG
+      run: echo "CURR_TAG=sha-$(echo $GITHUB_SHA | cut -c 1-7)" >> $GITHUB_ENV
+
+    - name: Set env DEPLOY_MODE
+      run: echo "DEPLOY_MODE=${{ secrets.DEPLOY_MODE }}" >> $GITHUB_ENV
+    
+    - name: Set env IMAGE_NAME
+      run: echo "IMAGE_NAME=$(echo $GITHUB_REPOSITORY | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+    
+    - uses: docker/build-push-action@v1
+      with:
+        tag_with_ref: true
+        tags: latest,${{ env.CURR_TAG }}
+        push: false
+    
+    - name: Test the image
+      run: docker-compose -f docker-compose_test.yaml up --exit-code-from webapp
+      env:
+        IMAGE: ${{ env.IMAGE_NAME  }}:${{ env.CURR_TAG }}
+    
+    - uses: docker/build-push-action@v1
+      if: ${{ github.ref == 'refs/heads/master' }}
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        repository: ${{ secrets.DOCKER_REPO  }}
+        tag_with_ref: true
+        tag_with_sha: true
+        tags: latest
+    
+    - name: Deploy new image on docker-swarm
+      if: ${{ github.ref == 'refs/heads/master' && env.DEPLOY_MODE == 'swarm' }}
+      uses: fifsky/ssh-action@master
+      with:
+        command: |
+          docker service update --image ${{ secrets.DOCKER_REPO  }}:${{ env.CURR_TAG }} webapp
+        host: ${{ secrets.HOST }}
+        user: ec2-user
+        key: ${{ secrets.PRIVATE_KEY}}
+
+  deploy_fargate:
+    needs: build-test-push
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Set env TAG
+      run: echo "CURR_TAG=sha-$(echo $GITHUB_SHA | cut -c 1-7)" >> $GITHUB_ENV
+
+    - name: Set env DEPLOY_MODE
+      run: echo "DEPLOY_MODE=${{ secrets.DEPLOY_MODE }}" >> $GITHUB_ENV
+    
+    - name: Configure AWS credentials from Test account
+      if: ${{ github.ref == 'refs/heads/master' && env.DEPLOY_MODE == 'fargate' }}
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Download task definition
+      if: ${{ github.ref == 'refs/heads/master' && env.DEPLOY_MODE == 'fargate' }}
+      run: |
+        aws ecs describe-task-definition --task-definition ${{ env.ONWER_ID }}-sfw-task-${{ env.SUFFIX }} --query taskDefinition > task-definition.json
+      
+    - name: Fill in the new image ID in the Amazon ECS task definition
+      if: ${{ github.ref == 'refs/heads/master' && env.DEPLOY_MODE == 'fargate' }}
+      id: task-def
+      uses: aws-actions/amazon-ecs-render-task-definition@v1
+      with:
+        task-definition: task-definition.json
+        container-name: simple_flask_web
+        image: ${{ secrets.DOCKER_REPO  }}:${{ env.CURR_TAG }}
+
+    - name: Deploy Amazon ECS task definition
+      if: ${{ github.ref == 'refs/heads/master' && env.DEPLOY_MODE == 'fargate' }}
+      uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+      with:
+        task-definition: ${{ steps.task-def.outputs.task-definition }}
+        service: ${{ env.ONWER_ID }}-sfw-service-${{ env.SUFFIX }}
+        cluster: ${{ env.ONWER_ID }}-ecs-cluster-${{ env.SUFFIX }}
+        wait-for-service-stability: true
